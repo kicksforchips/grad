@@ -152,9 +152,16 @@ input,select{font-family:inherit}
 .linkbtn:hover{color:var(--text)}
 
 /* tick for done */
-.tick{width:64px;height:64px;border-radius:50%;margin:0 auto 22px;display:grid;place-items:center;
+.tick{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;
   background:var(--surface-2);border:1px solid var(--line-2)}
 .tick svg{width:30px;height:30px;stroke:url(#g);stroke-width:2.4;fill:none}
+
+/* done summary card */
+.done-card{margin-top:24px;padding:8px 18px;background:var(--bg-2);border:1px solid var(--line);border-radius:12px}
+.done-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);gap:16px}
+.done-row:last-child{border-bottom:none}
+.done-row span{font-family:var(--display);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.done-row b{font-family:var(--display);font-size:15px;font-weight:600;letter-spacing:-.01em;text-align:right}
 
 footer{position:relative;z-index:2;text-align:center;padding:26px 24px 30px;
   font-family:var(--display);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted-2)}
@@ -238,12 +245,22 @@ footer{position:relative;z-index:2;text-align:center;padding:26px 24px 30px;
     <!-- STEP 3 — DONE -->
     <div class="view" id="view-done">
       <div class="tick"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div>
-      <div class="headline" style="text-align:center">You're in.</div>
-      <div class="sub" style="text-align:center" id="doneSub">See you at 280 Henry. Doors close 12:15 — don't be late.</div>
-      <div class="price-row" style="border-bottom:none">
-        <span class="lbl">On the list</span>
-        <span class="amt" style="font-size:22px" id="doneName">—</span>
+      <div class="step-label" style="justify-content:center"><span class="n">✓</span> Paid · Confirmed</div>
+      <div class="headline" style="text-align:center">You're <span class="gr">in</span>.</div>
+      <div class="sub" style="text-align:center">See you Saturday, <span id="doneFirst">friend</span>. Screenshot this page — the bouncer's gonna want to see it.</div>
+
+      <div class="done-card">
+        <div class="done-row"><span>Name</span><b id="doneName">—</b></div>
+        <div class="done-row"><span>Grade</span><b id="doneGrade">—</b></div>
+        <div class="done-row"><span>Where</span><b>280 Henry St</b></div>
+        <div class="done-row"><span>Doors close</span><b>12:15</b></div>
       </div>
+
+      <div class="checkline" style="margin-top:18px">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+        <span>Doors close at <b style="color:var(--text)">12:15</b>. Show this confirmation to get in.</span>
+      </div>
+      <button class="linkbtn" id="resetBtn">Register someone else →</button>
     </div>
   </div>
 </div>
@@ -296,7 +313,7 @@ function refreshGate(){
 }
 function setErr(msg){ gateErr.textContent = msg||''; gateErr.classList.toggle('show', !!msg); }
 
-// --- click grade → save → pay ---
+// --- click grade → stash locally → go to pay (no DB write until paid) ---
 gradesEl.addEventListener('click', async e => {
   const btn = e.target.closest('.grade');
   if(!btn || state.busy) return;
@@ -311,35 +328,10 @@ gradesEl.addEventListener('click', async e => {
   refreshGate();
   setErr('');
 
-  try {
-    const guest = { name: state.name, grade: state.grade };
-    if(placeholderMode){
-      console.warn('[demo] Supabase not configured — skipping save. Guest:', guest);
-      guest.id = 'demo';
-    } else {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`, {
-        method:'POST',
-        headers:{
-          'apikey':SUPABASE_ANON_KEY,
-          'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type':'application/json',
-          'Prefer':'return=representation'
-        },
-        body: JSON.stringify(guest)
-      });
-      if(!res.ok){ throw new Error(`Supabase ${res.status}: ${await res.text()}`); }
-      const rows = await res.json();
-      guest.id = rows[0]?.id;
-    }
-    localStorage.setItem('grad_guest', JSON.stringify(guest));
-    goToPay(guest);
-  } catch(err){
-    console.error(err);
-    setErr("Couldn't save you to the list. Try again.");
-    btn.classList.remove('loading');
-    state.busy = false;
-    refreshGate();
-  }
+  const guest = { name: state.name, grade: state.grade };
+  localStorage.setItem('grad_guest', JSON.stringify(guest));
+  await new Promise(r => setTimeout(r, 220));
+  goToPay(guest);
 });
 
 function goToPay(guest){
@@ -360,24 +352,45 @@ $('#payBtn').addEventListener('click', () => {
   window.location.href = link; // same tab → Square redirects back with ?paid=true
 });
 
-$('#backBtn').addEventListener('click', () => {
+function resetToGate(){
   localStorage.removeItem('grad_guest');
   state.name=''; state.grade=null; state.busy=false; nameInput.value='';
   document.querySelectorAll('.grade').forEach(g=>g.classList.remove('loading'));
+  if(location.search) history.replaceState({}, '', location.pathname);
   refreshGate(); show('gate');
-});
+}
+$('#backBtn').addEventListener('click', resetToGate);
+$('#resetBtn').addEventListener('click', resetToGate);
 
 // --- confirmation (Square redirected back) ---
-async function markPaid(guest){
-  if(placeholderMode || !guest.id || guest.id==='demo') return;
+async function savePaidGuest(guest){
+  if(placeholderMode) return;
+  if(guest.saved) return; // don't double-insert on reload
   try{
-    await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${guest.id}`,{
-      method:'PATCH',
-      headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type':'application/json'},
-      body: JSON.stringify({ paid:true })
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}`,{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type':'application/json',
+        'Prefer':'return=representation'
+      },
+      body: JSON.stringify({ name: guest.name, grade: guest.grade, paid: true })
     });
-  }catch(e){ console.warn('mark paid failed', e); }
+    if(res.ok){
+      guest.saved = true;
+      localStorage.setItem('grad_guest', JSON.stringify(guest));
+    } else {
+      console.warn('save paid failed', res.status, await res.text());
+    }
+  }catch(e){ console.warn('save paid error', e); }
+}
+
+function showDone(guest){
+  $('#doneName').textContent = guest.name;
+  $('#doneGrade').textContent = `Grade ${guest.grade}`;
+  $('#doneFirst').textContent = guest.name.split(' ')[0];
+  show('done');
 }
 
 (function init(){
@@ -385,10 +398,8 @@ async function markPaid(guest){
   const params = new URLSearchParams(location.search);
   const guest = JSON.parse(localStorage.getItem('grad_guest')||'null');
   if(params.get('paid')==='true' && guest){
-    $('#doneName').textContent = guest.name;
-    $('#doneSub').textContent = `See you at 280 Henry, ${guest.name.split(' ')[0]}. Doors close 12:15 — don't be late.`;
-    markPaid(guest);
-    show('done');
+    savePaidGuest(guest);
+    showDone(guest);
   } else if(guest && guest.grade){
     goToPay(guest); // resume mid-flow on reload
   }
