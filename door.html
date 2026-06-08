@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#08080a" />
+<title>Door — SAS GRAD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   ACCESS CODE is in the <script> block — search for ACCESS_CODE
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08080a;
+  --bg-2:#0c0c0f;
+  --surface:rgba(255,255,255,0.04);
+  --line:rgba(255,255,255,0.10);
+  --line-2:rgba(255,255,255,0.20);
+  --text:#f4f4f5;
+  --muted:#8a8a93;
+  --muted-2:#5d5d66;
+  --green:#4ade80;
+  --green-bg:rgba(74,222,128,0.10);
+  --green-line:rgba(74,222,128,0.32);
+  --red:#ff8a8a;
+  --display:'Space Grotesk',-apple-system,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+  --ease:cubic-bezier(0.22,1,0.36,1);
+}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--body);font-size:16px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit;border:none;outline:none;color:inherit}
+
+/* ===== Auth gate ===== */
+.gate{min-height:100dvh;display:grid;place-items:center;padding:24px;
+  background:radial-gradient(ellipse at top,rgba(107,123,255,0.06),transparent 60%)}
+.gate-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);
+  border-radius:18px;padding:32px;backdrop-filter:blur(14px)}
+.gate-card .kicker{font-family:var(--display);font-size:11px;font-weight:500;letter-spacing:.32em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.gate-card h1{font-family:var(--display);font-size:26px;font-weight:600;letter-spacing:-.02em;margin-bottom:8px}
+.gate-card p{color:var(--muted);font-size:14px;margin-bottom:24px}
+.gate-card input{width:100%;background:var(--bg-2);border:1px solid var(--line);color:var(--text);
+  padding:15px 16px;border-radius:11px;font-size:16px;margin-bottom:12px;transition:border-color .2s}
+.gate-card input:focus{border-color:var(--line-2)}
+.gate-card button{width:100%;background:var(--text);color:#08080a;padding:15px;border-radius:11px;
+  font-family:var(--display);font-weight:600;font-size:14px;letter-spacing:.04em;
+  transition:transform .2s var(--ease),box-shadow .25s}
+.gate-card button:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,0,0,.5)}
+.gate-card .err{color:var(--red);font-size:13px;margin-top:10px;min-height:18px;text-align:center}
+
+/* ===== App ===== */
+.app{display:none;min-height:100dvh;padding-bottom:80px}
+.app.show{display:block}
+
+.header{position:sticky;top:0;background:rgba(8,8,10,0.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:16px 20px 14px;z-index:10}
+.header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.header h1{font-family:var(--display);font-size:14px;font-weight:600;letter-spacing:.3em;text-transform:uppercase}
+.header h1 .dot{color:var(--green);margin:0 6px}
+.header-btn{width:38px;height:38px;border-radius:50%;background:var(--bg-2);border:1px solid var(--line);
+  display:grid;place-items:center;transition:transform .35s var(--ease),border-color .2s}
+.header-btn:hover{border-color:var(--line-2)}
+.header-btn.spin{transform:rotate(360deg)}
+.header-btn svg{width:18px;height:18px;stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:round}
+
+.stats{display:flex;gap:8px;margin-bottom:14px}
+.stat{flex:1;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;
+  padding:11px 13px;transition:border-color .2s}
+.stat.green{border-color:var(--green-line);background:var(--green-bg)}
+.stat .num{font-family:var(--display);font-size:24px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.stat.green .num{color:var(--green)}
+.stat .lbl{font-family:var(--display);font-size:10px;font-weight:500;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);margin-top:5px}
+
+.search{position:relative}
+.search input{width:100%;background:var(--bg-2);border:1px solid var(--line);
+  padding:13px 14px 13px 44px;border-radius:11px;font-size:16px;transition:border-color .2s}
+.search input:focus{border-color:var(--line-2);background:#101015}
+.search input::placeholder{color:var(--muted-2)}
+.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;
+  stroke:var(--muted);fill:none;stroke-width:2;pointer-events:none}
+
+/* ===== Filter toggles ===== */
+.filters{display:flex;gap:6px;margin-top:12px;padding:4px;background:var(--bg-2);
+  border:1px solid var(--line);border-radius:9px}
+.filter-btn{flex:1;padding:9px 6px;background:transparent;color:var(--muted);
+  font-family:var(--display);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  border-radius:6px;transition:background .2s,color .2s}
+.filter-btn.active{background:var(--text);color:#08080a}
+
+/* ===== List ===== */
+.list{padding:14px 20px 0}
+.row{display:flex;align-items:center;gap:12px;padding:14px 14px;background:var(--bg-2);
+  border:1px solid var(--line);border-radius:11px;margin-bottom:8px;
+  transition:transform .15s var(--ease),background .2s,border-color .2s;
+  -webkit-tap-highlight-color:transparent}
+.row:active{transform:scale(.985)}
+.row .name{flex:1;min-width:0;font-family:var(--display);font-size:16px;font-weight:600;letter-spacing:-.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .grade{flex-shrink:0;font-family:var(--display);font-size:11px;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);background:var(--surface);padding:5px 9px;border-radius:6px;
+  border:1px solid var(--line)}
+.row .status{flex-shrink:0;font-family:var(--display);font-size:10px;font-weight:500;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted-2);display:flex;align-items:center;gap:5px}
+.row .status svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+
+.row.arrived{background:var(--green-bg);border-color:var(--green-line)}
+.row.arrived .name{color:var(--green)}
+.row.arrived .grade{background:rgba(74,222,128,0.14);color:var(--green);border-color:transparent}
+.row.arrived .status{color:var(--green)}
+
+.row.busy{opacity:.5;pointer-events:none}
+
+.empty{padding:60px 20px;text-align:center;color:var(--muted);font-size:14px}
+.empty b{color:var(--text);font-family:var(--display);display:block;margin-bottom:4px}
+
+/* ===== Toast ===== */
+.toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,80px);
+  background:var(--bg-2);border:1px solid var(--line-2);border-radius:10px;
+  padding:13px 18px;font-size:14px;font-weight:500;
+  transition:transform .35s var(--ease),border-color .25s;
+  z-index:100;max-width:90vw;text-align:center;
+  box-shadow:0 18px 50px rgba(0,0,0,0.5)}
+.toast.show{transform:translate(-50%,0)}
+.toast.green{border-color:var(--green-line);color:var(--green)}
+.toast.red{border-color:rgba(255,138,138,0.4);color:var(--red)}
+
+/* ===== Loading skel ===== */
+.skel{display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg-2);
+  border:1px solid var(--line);border-radius:11px;margin-bottom:8px;height:54px}
+.skel::before{content:'';flex:1;height:14px;background:linear-gradient(90deg,var(--surface),var(--line),var(--surface));
+  background-size:200% 100%;animation:pulse 1.4s linear infinite;border-radius:4px}
+@keyframes pulse{from{background-position:0 0}to{background-position:200% 0}}
+
+@media(max-width:380px){
+  .header{padding:14px 16px}
+  .list{padding:10px 16px 0}
+  .row{padding:12px}
+  .stat .num{font-size:20px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== AUTH GATE ===== -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="kicker">SAS GRAD</div>
+    <h1>Door check-in</h1>
+    <p>Enter the access code to open the door list.</p>
+    <input id="pwd" type="password" placeholder="Access code" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    <button id="unlock">Unlock →</button>
+    <div class="err" id="err"></div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div class="app" id="app">
+  <div class="header">
+    <div class="header-top">
+      <h1>SAS GRAD<span class="dot">·</span>DOOR</h1>
+      <button class="header-btn" id="refresh" aria-label="Refresh">
+        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>
+      </button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num" id="statTotal">—</div><div class="lbl">Paid</div></div>
+      <div class="stat green"><div class="num" id="statArrived">—</div><div class="lbl">Arrived</div></div>
+      <div class="stat"><div class="num" id="statRemaining">—</div><div class="lbl">To go</div></div>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="Search by name…" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="notyet">Not yet</button>
+      <button class="filter-btn" data-filter="arrived">Arrived</button>
+    </div>
+  </div>
+  <div class="list" id="list">
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ⚙️  CONFIG
+   ============================================================ */
+const SUPABASE_URL = 'https://owurcuwqajccfgcnbrph.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_EcGnMCXb2z72P-gRbzLrUA_uGpWyzFx';
+const ACCESS_CODE  = 'henry280'; // change to whatever
+/* ============================================================ */
+
+const $ = s => document.querySelector(s);
+const HEADERS = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };
+
+let guests = [];
+let arrivals = new Map(); // guest_id → arrival row
+let filter = 'all';
+
+// === Auth ===
+function checkAuth(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('k') === ACCESS_CODE){
+    $('#gate').style.display = 'none';
+    $('#app').classList.add('show');
+    loadAll();
+    setInterval(loadAll, 30000); // soft sync every 30s
+    return true;
+  }
+  return false;
+}
+
+$('#unlock').addEventListener('click', () => {
+  const code = $('#pwd').value.trim();
+  if(code === ACCESS_CODE){
+    location.href = location.pathname + '?k=' + encodeURIComponent(code);
+  } else {
+    $('#err').textContent = 'Wrong code.';
+    $('#pwd').focus();
+  }
+});
+$('#pwd').addEventListener('keydown', e => { if(e.key==='Enter') $('#unlock').click(); });
+
+// === Data ===
+async function loadAll(){
+  try{
+    const [gRes, aRes] = await Promise.all([
+      fetch(`${SUPABASE_URL}/rest/v1/guests?select=*&paid=eq.true&order=name.asc`, { headers: HEADERS }),
+      fetch(`${SUPABASE_URL}/rest/v1/arrivals?select=*`, { headers: HEADERS })
+    ]);
+    if(!gRes.ok || !aRes.ok) throw new Error('fetch failed');
+    guests = await gRes.json();
+    const aList = await aRes.json();
+    arrivals = new Map(aList.map(a => [a.guest_id, a]));
+    render();
+  }catch(e){
+    console.error(e);
+    toast('Failed to load. Check connection.', 'red');
+  }
+}
+
+// === Render ===
+function escapeHtml(s){
+  return String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function gradeLabel(g){
+  return { 9:'9TH', 10:'10TH', 11:'11TH', 12:'12TH' }[g] || `G${g}`;
+}
+
+function render(){
+  const q = $('#search').value.toLowerCase().trim();
+  let list = guests;
+  if(q) list = list.filter(g => g.name.toLowerCase().includes(q));
+  if(filter === 'arrived') list = list.filter(g => arrivals.has(g.id));
+  if(filter === 'notyet')  list = list.filter(g => !arrivals.has(g.id));
+
+  const arrivedCount = guests.filter(g => arrivals.has(g.id)).length;
+  $('#statTotal').textContent = guests.length;
+  $('#statArrived').textContent = arrivedCount;
+  $('#statRemaining').textContent = guests.length - arrivedCount;
+
+  if(list.length === 0){
+    $('#list').innerHTML = `<div class="empty"><b>${q ? 'No matches' : (filter==='arrived' ? 'No one in yet' : 'No one left')}</b>${q ? `for "${escapeHtml(q)}"` : 'Try a different filter.'}</div>`;
+    return;
+  }
+  $('#list').innerHTML = list.map(g => {
+    const arrived = arrivals.has(g.id);
+    return `
+      <div class="row ${arrived ? 'arrived' : ''}" data-id="${g.id}">
+        <div class="name">${escapeHtml(g.name)}</div>
+        <div class="grade">${gradeLabel(g.grade)}</div>
+        <div class="status">${arrived
+          ? '<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>IN'
+          : 'TAP'}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// === Toggle arrival ===
+const busy = new Set();
+async function toggle(id){
+  if(busy.has(id)) return;
+  const guest = guests.find(g => g.id === id);
+  if(!guest) return;
+  busy.add(id);
+
+  const wasArrived = arrivals.has(id);
+  // optimistic
+  if(wasArrived){
+    arrivals.delete(id);
+  } else {
+    arrivals.set(id, { guest_id: id, guest_name: guest.name, guest_grade: guest.grade, _temp: true });
+  }
+  render();
+
+  try{
+    if(wasArrived){
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/arrivals?guest_id=eq.${id}`, {
+        method:'DELETE', headers: HEADERS
+      });
+      if(!res.ok) throw new Error(`del ${res.status}`);
+      toast(`${guest.name.split(' ')[0]} un-checked`);
+    } else {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/arrivals`, {
+        method:'POST',
+        headers:{ ...HEADERS, 'Content-Type':'application/json', Prefer:'return=representation' },
+        body: JSON.stringify({ guest_id: id, guest_name: guest.name, guest_grade: guest.grade })
+      });
+      if(!res.ok) throw new Error(`ins ${res.status}: ${await res.text()}`);
+      const row = (await res.json())[0];
+      arrivals.set(id, row);
+      toast(`${guest.name.split(' ')[0]} checked in ✓`, 'green');
+    }
+  } catch(e){
+    console.error(e);
+    // revert
+    if(wasArrived){ arrivals.set(id, { guest_id: id, guest_name: guest.name, guest_grade: guest.grade }); }
+    else { arrivals.delete(id); }
+    render();
+    toast('Failed. Try again.', 'red');
+  }
+  busy.delete(id);
+}
+
+// === Toast ===
+let toastTimer;
+function toast(msg, kind=''){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = 'toast ' + kind; }, 2200);
+}
+
+// === Events ===
+$('#search').addEventListener('input', render);
+$('#refresh').addEventListener('click', () => {
+  const btn = $('#refresh');
+  btn.classList.add('spin');
+  setTimeout(() => btn.classList.remove('spin'), 360);
+  loadAll();
+});
+$('#list').addEventListener('click', e => {
+  const row = e.target.closest('.row');
+  if(row) toggle(row.dataset.id);
+});
+document.querySelectorAll('.filter-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    filter = b.dataset.filter;
+    render();
+  });
+});
+
+// === Init ===
+if(!checkAuth()){
+  $('#pwd').focus();
+}
+</script>
+</body>
+</html>
