@@ -154,20 +154,8 @@ input{font-family:inherit;border:none;outline:none;color:inherit}
 </head>
 <body>
 
-<!-- ===== AUTH GATE ===== -->
-<div class="gate" id="gate">
-  <div class="gate-card">
-    <div class="kicker">SAS GRAD</div>
-    <h1>Door check-in</h1>
-    <p>Enter the access code to open the door list.</p>
-    <input id="pwd" type="password" placeholder="Access code" autocomplete="off" autocapitalize="off" spellcheck="false" />
-    <button id="unlock">Unlock →</button>
-    <div class="err" id="err"></div>
-  </div>
-</div>
-
 <!-- ===== APP ===== -->
-<div class="app" id="app">
+<div class="app show" id="app">
   <div class="header">
     <div class="header-top">
       <h1>SAS GRAD<span class="dot">·</span>DOOR</h1>
@@ -203,7 +191,6 @@ input{font-family:inherit;border:none;outline:none;color:inherit}
    ============================================================ */
 const SUPABASE_URL = 'https://owurcuwqajccfgcnbrph.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_EcGnMCXb2z72P-gRbzLrUA_uGpWyzFx';
-const ACCESS_CODE  = 'henry280'; // change to whatever
 /* ============================================================ */
 
 const $ = s => document.querySelector(s);
@@ -212,30 +199,6 @@ const HEADERS = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` 
 let guests = [];
 let arrivals = new Map(); // guest_id → arrival row
 let filter = 'all';
-
-// === Auth ===
-function checkAuth(){
-  const params = new URLSearchParams(location.search);
-  if(params.get('k') === ACCESS_CODE){
-    $('#gate').style.display = 'none';
-    $('#app').classList.add('show');
-    loadAll();
-    setInterval(loadAll, 30000); // soft sync every 30s
-    return true;
-  }
-  return false;
-}
-
-$('#unlock').addEventListener('click', () => {
-  const code = $('#pwd').value.trim();
-  if(code === ACCESS_CODE){
-    location.href = location.pathname + '?k=' + encodeURIComponent(code);
-  } else {
-    $('#err').textContent = 'Wrong code.';
-    $('#pwd').focus();
-  }
-});
-$('#pwd').addEventListener('keydown', e => { if(e.key==='Enter') $('#unlock').click(); });
 
 // === Data ===
 async function loadAll(){
@@ -371,9 +334,8 @@ document.querySelectorAll('.filter-btn').forEach(b => {
 });
 
 // === Init ===
-if(!checkAuth()){
-  $('#pwd').focus();
-}
+loadAll();
+setInterval(loadAll, 30000); // soft sync every 30s
 </script>
 </body>
 </html>
