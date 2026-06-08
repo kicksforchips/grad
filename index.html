@@ -101,6 +101,11 @@ input,select{font-family:inherit}
 .grade .g{font-family:var(--display);font-size:30px;font-weight:600;line-height:1;letter-spacing:-.03em}
 .grade.disabled{opacity:.4;cursor:not-allowed}
 .grade.disabled:hover{transform:none;background:var(--bg-2);border-color:var(--line)}
+.grade.sold-out{cursor:not-allowed;border-color:rgba(255,138,138,.22);background:rgba(255,138,138,.05);padding:18px 6px}
+.grade.sold-out:hover{transform:none;background:rgba(255,138,138,.05);border-color:rgba(255,138,138,.22)}
+.grade.sold-out .g{color:#7a7a82;font-size:24px}
+.grade.sold-out .full-badge{font-family:var(--display);font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#ff8a8a;margin-top:6px}
+.grade.sold-out.disabled{opacity:1}
 .grade.loading{border-color:transparent;background:var(--accent);color:#08080a;pointer-events:none}
 .grade.loading .g{opacity:0}
 .grade.loading::after{content:'';position:absolute;top:50%;left:50%;width:20px;height:20px;
@@ -215,7 +220,7 @@ footer{position:relative;z-index:2;text-align:center;padding:26px 24px 30px;
         <label>Pick your grade</label>
         <div class="grades" id="grades">
           <button type="button" class="grade" data-grade="9"><div class="g">9</div></button>
-          <button type="button" class="grade" data-grade="10"><div class="g">10</div></button>
+          <button type="button" class="grade sold-out" data-grade="10"><div class="g">10</div><div class="full-badge">Full</div></button>
           <button type="button" class="grade" data-grade="11"><div class="g">11</div></button>
           <button type="button" class="grade" data-grade="12"><div class="g">12</div></button>
         </div>
@@ -317,6 +322,10 @@ function setErr(msg){ gateErr.textContent = msg||''; gateErr.classList.toggle('s
 gradesEl.addEventListener('click', async e => {
   const btn = e.target.closest('.grade');
   if(!btn || state.busy) return;
+  if(btn.classList.contains('sold-out')){
+    setErr('10th grade is full — no spots left.');
+    return;
+  }
   if(state.name.length < 2){
     setErr('Enter your name first.');
     nameInput.focus();
