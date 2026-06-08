@@ -293,6 +293,9 @@ const SQUARE_LINKS = {
 };
 
 const PRICES = { 9:40, 10:30, 11:15, 12:5 };
+// Hard caps — grade is auto-marked Full once paid count hits these.
+// (Grade 10 is also hard-coded sold-out in the HTML; grade 12 has no cap.)
+const CAPS   = { 9: 10, 11: 54 };
 /* ============================================================ */
 
 const $ = s => document.querySelector(s);
@@ -323,7 +326,9 @@ gradesEl.addEventListener('click', async e => {
   const btn = e.target.closest('.grade');
   if(!btn || state.busy) return;
   if(btn.classList.contains('sold-out')){
-    setErr('10th grade is full — no spots left.');
+    const g = btn.dataset.grade;
+    const suffix = g==='9' ? 'th' : g==='10' ? 'th' : g==='11' ? 'th' : g==='12' ? 'th' : 'th';
+    setErr(`${g}${suffix} grade is full — no spots left.`);
     return;
   }
   if(state.name.length < 2){
@@ -395,6 +400,35 @@ async function savePaidGuest(guest){
   }catch(e){ console.warn('save paid error', e); }
 }
 
+// === Caps — auto-mark grade buttons as sold-out when they hit their cap ===
+async function getPaidCount(grade){
+  try{
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=count&paid=eq.true&grade=eq.${grade}`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }
+    });
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data[0]?.count ?? 0;
+  } catch(e){ return null; }
+}
+function markFull(grade){
+  const btn = document.querySelector(`.grade[data-grade="${grade}"]`);
+  if(!btn || btn.classList.contains('sold-out')) return;
+  btn.classList.add('sold-out');
+  const badge = document.createElement('div');
+  badge.className = 'full-badge';
+  badge.textContent = 'Full';
+  btn.appendChild(badge);
+}
+async function checkCaps(){
+  if(placeholderMode) return;
+  const grades = Object.keys(CAPS).map(Number);
+  const counts = await Promise.all(grades.map(g => getPaidCount(g)));
+  grades.forEach((g, i) => {
+    if(counts[i] !== null && counts[i] >= CAPS[g]) markFull(g);
+  });
+}
+
 function showDone(guest){
   $('#doneName').textContent = guest.name;
   $('#doneGrade').textContent = `Grade ${guest.grade}`;
@@ -404,6 +438,8 @@ function showDone(guest){
 
 (function init(){
   refreshGate();
+  checkCaps();
+  setInterval(checkCaps, 30000); // re-check every 30s in case caps fill while page is open
   const params = new URLSearchParams(location.search);
   const guest = JSON.parse(localStorage.getItem('grad_guest')||'null');
   if(params.get('paid')==='true' && guest){
